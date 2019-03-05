@@ -3,14 +3,26 @@
  
 void sha256();
  
-// See Section 4.1.2 for definition.
-uint32_t sig0(uint32_t x);
-uint32_t sig1(uint32_t x);
-
 // See Section 3.2 for definitions.
-uint32_t rotr(uint32_t n, uint32_t x);
-uint32_t shr(uint32_t n, uint32_t x);
-   
+// uint32_t rotr(uint32_t n, uint32_t x);
+// uint32_t shr(uint32_t n, uint32_t x);
+#define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
+#define ROTRIGHT(a,b) (((a) >> (b)) | ((a) << (32-(b))))
+
+// See Section 4.1.2 for definition.
+// uint32_t sig0(uint32_t x);
+// uint32_t sig1(uint32_t x);
+#define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3 ))
+#define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
+
+ 
+
+#define CH(x,y,z) (((x) & (y)) ^ (~(x) & (z)))
+#define MAJ(x,y,z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+#define EP0(x) (ROTRIGHT(x,2) ^ ROTRIGHT(x,13) ^ ROTRIGHT(x,22))
+#define EP1(x) (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
+
+
     
 //K = constant value to be used for the iteration t of the hash computation.
 static const uint32_t  K[64] = {
@@ -35,10 +47,10 @@ int main (int argc, char *argv[]){
 
 void sha256() {
              
-     uint32_t W[64];
-     uint32_t a,b,c,d,e,f,g,h;
-     uint32_t T1, T2;
-     uint32_t H[8] = {
+    uint32_t W[64];
+    uint32_t a,b,c,d,e,f,g,h;
+    uint32_t T1, T2;
+    uint32_t H[8] = {
         0x6a09e667,
         0xbb67ae85,
         0x3c6ef372,
@@ -50,18 +62,23 @@ void sha256() {
      };
 
 // the current message block
-     uint32_t M[16] = {0 , 0 , 0 ,0 ,0 ,0 , 0, 0};
+    uint32_t M[16] = {0 , 0 , 0 ,0 ,0 ,0 , 0, 0
+//                      ,0 , 0 , 0 ,0 ,0 ,0 , 0, 0
+     };
                                                              
-     // For looping.
-     int t;  
+ // For looping.
+    int i, t;  
                                                                   
+//  Loop through message blocks as per page 22
+    for ( i = 0; i < 1; i++ ) {
+
 // From page 22, W[t] = M[t] for 0 <= t <= 15.
     for(t = 0; t < 16; t++) {
        W[t] = M[t];
     }
                                                                            
-    for(t = 16; t < 64; t++) {
-       sig_1(W[t-2]) + W[t-7] + sig_0(W[t-15]) + W[t-16];
+    for(t = 16; t < 64; ++t) {
+       W[t] = SIG1(W[t-2]) + W[t-7] + SIG0(W[t-15]) + W[t-16];
     }
                                                                                   
                                                                                    
@@ -70,9 +87,9 @@ void sha256() {
     d = H[4]; e = H[5]; f = H[6]; f = H[7];
                                                                                           
 // Step 3.
-    for(t = 0; t < 64; t ++){
-       T1 = h + SIG_1(e) + Ch(e,f,g) + K[t] + W[t];
-       T2 = SIG_0(a) + Maj(a,b,c);
+    for(t = 0; t < 64; t++) {
+       T1 = h + EP1(e) + CH(e,f,g) + K[t] + W[t];
+       T2 = EP0(a) + MAJ(a,b,c);
        h = g;
        g = f;
        f = e;
@@ -94,24 +111,27 @@ void sha256() {
     H[6] = g + H[6];
     H[7] = h + H[7];
 
+    } // end loop
+
     printf("%x %x %x %x %x %x %x %x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+
 } // end function
 
-uint32_t sig0(uint32_t x) {
+//uint32_t sig0(uint32_t x) {
 // See Sections 3.2 and 4.1.2 for definitions.
-    return (rotr(7,x) ^ rotr(18, x) ^ shr(3,x));
-}
+//    return (rotr(7,x) ^ rotr(18, x) ^ shr(3,x));
+//}
                                                                                                                                                                      
-uint32_t sig1(uint32_t x) {
+//uint32_t sig1(uint32_t x) {
 // See Sections 3.2 and 4.1.2 for definitions.
-    return (rotr(17,x) ^ rotr(19,x) ^ shr(10,x));
-}
+//    return (rotr(17,x) ^ rotr(19,x) ^ shr(10,x));
+//}
 
-uint32_t rotr(uint32_t n, uint32_t x) {
+//uint32_t rotr(uint32_t n, uint32_t x) {
 // See Section 3.2 for definition.
-    return (x >> n) | (x << (32-n));
-}
+//    return (x >> n) | (x << (32-n));
+//}
 
-uint32_t shr(uint32_t n, uint32_t x) {
-    return (x >> n);
-}
+//uint32_t shr(uint32_t n, uint32_t x) {
+//    return (x >> n);
+//}
