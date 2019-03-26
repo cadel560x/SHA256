@@ -22,7 +22,9 @@ void sha256();
 #define EP0(x) (ROTRIGHT(x,2) ^ ROTRIGHT(x,13) ^ ROTRIGHT(x,22))
 #define EP1(x) (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
 
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 
+#define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
     
 //K = constant value to be used for the iteration t of the hash computation.
 static const uint32_t  K[64] = {
@@ -71,6 +73,7 @@ void sha256() {
                                                                   
 //  Loop through message blocks as per page 22
     for ( i = 0; i < 1; i++ ) {
+//    while (nextmsgblock()) {
 
 // From page 22, W[t] = M[t] for 0 <= t <= 15.
     for(t = 0; t < 16; t++) {
@@ -113,7 +116,13 @@ void sha256() {
 
     } // end loop
 
-    printf("%x %x %x %x %x %x %x %x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+    if (IS_BIG_ENDIAN) {
+    	printf("%x %x %x %x %x %x %x %x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+    }
+    else {
+    	printf("%x %x %x %x %x %x %x %x : ",  SWAP_UINT32(H[0]), SWAP_UINT32(H[1]), SWAP_UINT32(H[2]), SWAP_UINT32(H[3]), SWAP_UINT32(H[4]), SWAP_UINT32(H[5]), SWAP_UINT32(H[6]), SWAP_UINT32(H[7]));
+    }
+    printf("\n");
 
 } // end function
 
