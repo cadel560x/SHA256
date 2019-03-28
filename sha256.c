@@ -1,21 +1,19 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
  
-void sha256();
  
+// MACROS
+//
 // See Section 3.2 for definitions.
-// uint32_t rotr(uint32_t n, uint32_t x);
-// uint32_t shr(uint32_t n, uint32_t x);
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
 #define ROTRIGHT(a,b) (((a) >> (b)) | ((a) << (32-(b))))
 
 // See Section 4.1.2 for definition.
-// uint32_t sig0(uint32_t x);
-// uint32_t sig1(uint32_t x);
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3 ))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
-
- 
 
 #define CH(x,y,z) (((x) & (y)) ^ (~(x) & (z)))
 #define MAJ(x,y,z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
@@ -26,6 +24,7 @@ void sha256();
 
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
     
+
 //K = constant value to be used for the iteration t of the hash computation.
 static const uint32_t  K[64] = {
     0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
@@ -38,16 +37,65 @@ static const uint32_t  K[64] = {
     0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
 
+
+// Data structures
+union msgblock {
+	uint8_t e[64];
+	uint32_t th[16];
+	uint64_t s[8];
+};
+
+enum status {READ, PAD0, PAD1, FINISH};
+
+
+// Function prototypes
+void sha256(FILE *input_file);
+int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *nobits);
+
+
+
+
+// Entry point 
 int main (int argc, char *argv[]){
+
+	FILE *file;
     
-    sha256();
-        
+	// Check for input files
+	if (argc == 1) {
+		fprintf(stderr, "Error: No input files\n");	
+		fprintf(stderr, "usage: %s [FILE]...\n", argv[0]);
+		exit(1);
+	}
+
+	// Iterates over input files
+	for (int j = 1; j < argc; j++ ) {
+		file = fopen(argv[j], "r");
+		
+		// File check
+		if ( file == NULL ) {
+			fprintf(stderr, "Error: %s\n", strerror(errno));	
+			exit(2);
+		}
+
+		// Run the secure hash algorithm on the current file
+    		sha256(file);
+
+		// Close the current file
+		fclose(file);
+
+	} // end loop
+
     return 0;
            
 } // end main
             
 
-void sha256() {
+// Function implementations
+//
+void sha256(FILE *input_file) {
+    union msgblock M;
+    enum status S = READ;
+    uint64_t nobits = 0;
              
     uint32_t W[64];
     uint32_t a,b,c,d,e,f,g,h;
@@ -64,55 +112,55 @@ void sha256() {
      };
 
 // the current message block
-    uint32_t M[16] = {0 , 0 , 0 ,0 ,0 ,0 , 0, 0
+//    uint32_t M[16] = {0 , 0 , 0 ,0 ,0 ,0 , 0, 0
 //                      ,0 , 0 , 0 ,0 ,0 ,0 , 0, 0
-     };
+//     };
                                                              
  // For looping.
     int i, t;  
                                                                   
 //  Loop through message blocks as per page 22
-    for ( i = 0; i < 1; i++ ) {
-//    while (nextmsgblock()) {
+//    for ( i = 0; i < 1; i++ ) {
+    while (nextmsgblock(input_file, &M, &S, &nobits)) {
 
-// From page 22, W[t] = M[t] for 0 <= t <= 15.
-    for(t = 0; t < 16; t++) {
-       W[t] = M[t];
-    }
-                                                                           
-    for(t = 16; t < 64; ++t) {
-       W[t] = SIG1(W[t-2]) + W[t-7] + SIG0(W[t-15]) + W[t-16];
-    }
-                                                                                  
-                                                                                   
-// Initialize a,b,c, ... ,h as per step 2, Page 22.
-    a = H[0]; b = H[1]; c = H[2]; d = H[3];
-    d = H[4]; e = H[5]; f = H[6]; f = H[7];
-                                                                                          
-// Step 3.
-    for(t = 0; t < 64; t++) {
-       T1 = h + EP1(e) + CH(e,f,g) + K[t] + W[t];
-       T2 = EP0(a) + MAJ(a,b,c);
-       h = g;
-       g = f;
-       f = e;
-       e = d + T1;
-       d = c;
-       c = b;
-       b = a;
-       a = T1 + T2;
-
-    } // end loop
-                                                                                                                                           
-// Step 4.
-    H[0] = a + H[0];
-    H[1] = b + H[1];
-    H[2] = c + H[2];
-    H[3] = d + H[3];
-    H[4] = e + H[4];
-    H[5] = f + H[5];
-    H[6] = g + H[6];
-    H[7] = h + H[7];
+	// From page 22, W[t] = M[t] for 0 <= t <= 15.
+	    for(t = 0; t < 16; t++) {
+	       W[t] = M.th[t];
+	    }
+	                                                                           
+	    for(t = 16; t < 64; ++t) {
+	       W[t] = SIG1(W[t-2]) + W[t-7] + SIG0(W[t-15]) + W[t-16];
+	    }
+	                                                                                  
+	                                                                                   
+	// Initialize a,b,c, ... ,h as per step 2, Page 22.
+	    a = H[0]; b = H[1]; c = H[2]; d = H[3];
+	    d = H[4]; e = H[5]; f = H[6]; f = H[7];
+	                                                                                          
+	// Step 3.
+	    for(t = 0; t < 64; t++) {
+	       T1 = h + EP1(e) + CH(e,f,g) + K[t] + W[t];
+	       T2 = EP0(a) + MAJ(a,b,c);
+	       h = g;
+	       g = f;
+	       f = e;
+	       e = d + T1;
+	       d = c;
+	       c = b;
+	       b = a;
+	       a = T1 + T2;
+	
+	    } // end loop
+	                                                                                                                                           
+	// Step 4.
+	    H[0] = a + H[0];
+	    H[1] = b + H[1];
+	    H[2] = c + H[2];
+	    H[3] = d + H[3];
+	    H[4] = e + H[4];
+	    H[5] = f + H[5];
+	    H[6] = g + H[6];
+	    H[7] = h + H[7];
 
     } // end loop
 
@@ -126,21 +174,102 @@ void sha256() {
 
 } // end function
 
-//uint32_t sig0(uint32_t x) {
-// See Sections 3.2 and 4.1.2 for definitions.
-//    return (rotr(7,x) ^ rotr(18, x) ^ shr(3,x));
-//}
-                                                                                                                                                                     
-//uint32_t sig1(uint32_t x) {
-// See Sections 3.2 and 4.1.2 for definitions.
-//    return (rotr(17,x) ^ rotr(19,x) ^ shr(10,x));
-//}
 
-//uint32_t rotr(uint32_t n, uint32_t x) {
-// See Section 3.2 for definition.
-//    return (x >> n) | (x << (32-n));
-//}
+int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *nobits) {
 
-//uint32_t shr(uint32_t n, uint32_t x) {
-//    return (x >> n);
-//}
+	uint64_t nobytes;
+
+	// If we have finished all the message blocks, then S should be FINISH
+	if (*S == FINISH) {
+		return 0;
+	}
+	
+	// Check if we need another block full of padding 
+	if (*S == PAD0 || *S == PAD1) {
+		// Set the first 56 bytes to all zero bits
+		for (int i = 0; i < 56; i++) {
+			M->e[i] = 0x00;
+		}
+
+		// Set the last 64 bits to the number of bits in the file (big-endian)
+		M->s[7] = *nobits;
+		// Tell S we are finished
+		*S = FINISH;
+
+		if (*S == PAD1) {
+			M->e[0] = 0x80;
+		}
+
+		// Keep the loop in sha256 going for one more iteration
+		return 1;
+
+	} // end if
+
+
+	// If we get down here, we haven't finished reading the file
+	// Starts reading current input file pointed by 'f' pointer
+	*S = READ;
+
+	nobytes = fread(M->e, 1, 64, input_file);
+	
+	//printf("Read %2llu bytes\n", nobytes);
+	
+	// Keep trac of the number of bytes we've read
+	*nobits = *nobits + (nobytes * 8);
+
+	// If we read less than 56 bytes, we can put all padding in this message block
+	if (nobytes < 56 ) {
+		// printf("I've found a block with less than 55 bytes!\n");
+		 
+		// And the one bit, per standard
+		M->e[nobytes] = 0x80;
+
+		// Add zero bits unit the last 64 bits
+		while (nobytes < 56) {
+			nobytes = nobytes + 1;
+			M->e[nobytes] = 0x00;
+
+		} // end loop
+
+		// Append the file size in bits as an unsigned 64 bit int (big-endian)
+		M->s[7] = *nobits;
+
+		// Tell S we have finished
+		*S = FINISH;
+	
+	// Otherwise, check if we can put some padding int this message block	
+	}
+	else if (nobytes < 64) {
+		// Tell S we need another mesage block, with padding but no one bit
+		*S = PAD0;
+
+		// Put the one bit into the current block
+		M->e[nobytes] = 0x80;
+
+		// Pad the rest of the block with zero bits
+		while (nobytes < 64) {
+			nobytes = nobytes + 1;
+			M->e[nobytes] = 0x00;
+
+		} // end loop
+	}
+	// Otherwise, check if we're just at the end of the file
+	else if (feof(input_file)) {
+		// Tell S that we need another message block with all the padding
+		*S = PAD1;
+
+	} // end if-else if
+
+
+	// DEBUG
+	// for (int i = 0; i < 64; i++) {
+	// 	printf("%x ", M.e[i]);
+	// }
+
+	// printf("\n\n");
+
+	// Return 1 to get this function to be called again
+	return 1;
+
+} // end function
+
