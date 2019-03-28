@@ -135,7 +135,7 @@ void sha256(FILE *input_file) {
 	                                                                                   
 	// Initialize a,b,c, ... ,h as per step 2, Page 22.
 	    a = H[0]; b = H[1]; c = H[2]; d = H[3];
-	    d = H[4]; e = H[5]; f = H[6]; f = H[7];
+	    e = H[4]; f = H[5]; g = H[6]; h = H[7];
 	                                                                                          
 	// Step 3.
 	    for(t = 0; t < 64; t++) {
@@ -165,10 +165,10 @@ void sha256(FILE *input_file) {
     } // end loop
 
     if (IS_BIG_ENDIAN) {
-    	printf("%x %x %x %x %x %x %x %x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
     }
     else {
-    	printf("%x %x %x %x %x %x %x %x : ",  SWAP_UINT32(H[0]), SWAP_UINT32(H[1]), SWAP_UINT32(H[2]), SWAP_UINT32(H[3]), SWAP_UINT32(H[4]), SWAP_UINT32(H[5]), SWAP_UINT32(H[6]), SWAP_UINT32(H[7]));
+    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  SWAP_UINT32(H[0]), SWAP_UINT32(H[1]), SWAP_UINT32(H[2]), SWAP_UINT32(H[3]), SWAP_UINT32(H[4]), SWAP_UINT32(H[5]), SWAP_UINT32(H[6]), SWAP_UINT32(H[7]));
     }
     printf("\n");
 
@@ -214,7 +214,7 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 	
 	//printf("Read %2llu bytes\n", nobytes);
 	
-	// Keep trac of the number of bytes we've read
+	// Keep track of the number of bytes we've read
 	*nobits = *nobits + (nobytes * 8);
 
 	// If we read less than 56 bytes, we can put all padding in this message block
