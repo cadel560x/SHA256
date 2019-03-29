@@ -89,7 +89,7 @@ int main (int argc, char *argv[]){
 } // end main
 
 
-// Function implementations
+// Functions implementation
 //
 void sha256(FILE *input_file) {
     union msgblock M;
@@ -110,11 +110,6 @@ void sha256(FILE *input_file) {
         0x5be0cd19
      };
 
-// the current message block
-//    uint32_t M[16] = {0 , 0 , 0 ,0 ,0 ,0 , 0, 0
-//                      ,0 , 0 , 0 ,0 ,0 ,0 , 0, 0
-//     };
-                                                             
  // For looping.
     int t;
                                                                   
@@ -137,18 +132,20 @@ void sha256(FILE *input_file) {
 	       W[t] = SIG1(W[t-2]) + W[t-7] + SIG0(W[t-15]) + W[t-16];
 	    }
 	     
-        // Debug
-        // for (t = 0; t < 64; t++) {
-        //    printf("%08x ", W[t]);
-        // }
-        // printf("\n\n");
-        
+       /*   // Debug
+            for (t = 0; t < 64; t++) {
+               printf("%08x ", W[t]);
+            }
+            printf("\n\n");
+       */
+
 	// Initialize a,b,c, ... ,h as per step 2, Page 22.
 	    a = H[0]; b = H[1]; c = H[2]; d = H[3];
 	    e = H[4]; f = H[5]; g = H[6]; h = H[7];
-	                                                                                          
+
 	// Step 3.
 	    for(t = 0; t < 64; t++) {
+
 	       T1 = h + EP1(e) + CH(e,f,g) + K[t] + W[t];
 	       T2 = EP0(a) + MAJ(a,b,c);
 	       h = g;
@@ -159,9 +156,21 @@ void sha256(FILE *input_file) {
 	       c = b;
 	       b = a;
 	       a = T1 + T2;
-	
+	       
 	    } // end loop
-	                                                                                                                                           
+
+	  /*  // Debug
+	    printf("%08x\n", a);
+	    printf("%08x\n", b);
+	    printf("%08x\n", c);
+	    printf("%08x\n", d);
+	    printf("%08x\n", e);
+	    printf("%08x\n", f);
+	    printf("%08x\n", g);
+	    printf("%08x\n", h);
+            printf("\n\n");
+          */
+	
 	// Step 4.
 	    H[0] = a + H[0];
 	    H[1] = b + H[1];
@@ -174,16 +183,7 @@ void sha256(FILE *input_file) {
 
     } // end loop
 
-//    if (IS_BIG_ENDIAN) {
-//    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
-//    }
-//    else {
-//    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  SWAP_UINT32(H[0]), SWAP_UINT32(H[1]), SWAP_UINT32(H[2]), SWAP_UINT32(H[3]), SWAP_UINT32(H[4]), SWAP_UINT32(H[5]), SWAP_UINT32(H[6]), SWAP_UINT32(H[7]));
-//    }
-    
     printf("%08x%08x%08x%08x%08x%08x%08x%08x\n",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
-    
-    // printf("\n");
 
 } // end function
 
@@ -274,12 +274,12 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 	} // end if-else if
 
 
-	// DEBUG
-	// for (int i = 0; i < 64; i++) {
-	// 	printf("%x ", M.e[i]);
-	// }
-
-	// printf("\n\n");
+	/* // DEBUG
+	for (int i = 0; i < 64; i++) {
+		printf("%x ", M.e[i]);
+	}
+	printf("\n\n");
+	*/
 
 	// Return 1 to get this function to be called again
 	return 1;
