@@ -14,7 +14,6 @@
 // See Section 4.1.2 for definition.
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3 ))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
-
 #define CH(x,y,z) (((x) & (y)) ^ (~(x) & (z)))
 #define MAJ(x,y,z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
 #define EP0(x) (ROTRIGHT(x,2) ^ ROTRIGHT(x,13) ^ ROTRIGHT(x,22))
@@ -63,7 +62,7 @@ int main (int argc, char *argv[]){
 	// Check for input files
 	if (argc == 1) {
 		fprintf(stderr, "Error: No input files\n");	
-		fprintf(stderr, "usage: %s [FILE]...\n", argv[0]);
+		fprintf(stderr, "usage: %sfth [FILE]...\n", argv[0]);
 		exit(1);
 	}
 
@@ -88,7 +87,7 @@ int main (int argc, char *argv[]){
     return 0;
            
 } // end main
-            
+
 
 // Function implementations
 //
@@ -117,7 +116,7 @@ void sha256(FILE *input_file) {
 //     };
                                                              
  // For looping.
-    int i, t;  
+    int t;
                                                                   
 //  Loop through message blocks as per page 22
 //    for ( i = 0; i < 1; i++ ) {
@@ -125,14 +124,25 @@ void sha256(FILE *input_file) {
 
 	// From page 22, W[t] = M[t] for 0 <= t <= 15.
 	    for(t = 0; t < 16; t++) {
-	       W[t] = M.th[t];
-	    }
+	       if (IS_BIG_ENDIAN) {
+	       	  W[t] = M.th[t];
+	       }
+	       else {
+    	          W[t] = SWAP_UINT32(M.th[t]);
+	       } // end if-else
+
+	    } // end loop
 	                                                                           
 	    for(t = 16; t < 64; ++t) {
 	       W[t] = SIG1(W[t-2]) + W[t-7] + SIG0(W[t-15]) + W[t-16];
 	    }
-	                                                                                  
-	                                                                                   
+	     
+        // Debug
+        // for (t = 0; t < 64; t++) {
+        //    printf("%08x ", W[t]);
+        // }
+        // printf("\n\n");
+        
 	// Initialize a,b,c, ... ,h as per step 2, Page 22.
 	    a = H[0]; b = H[1]; c = H[2]; d = H[3];
 	    e = H[4]; f = H[5]; g = H[6]; h = H[7];
@@ -164,13 +174,16 @@ void sha256(FILE *input_file) {
 
     } // end loop
 
-    if (IS_BIG_ENDIAN) {
-    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
-    }
-    else {
-    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  SWAP_UINT32(H[0]), SWAP_UINT32(H[1]), SWAP_UINT32(H[2]), SWAP_UINT32(H[3]), SWAP_UINT32(H[4]), SWAP_UINT32(H[5]), SWAP_UINT32(H[6]), SWAP_UINT32(H[7]));
-    }
-    printf("\n");
+//    if (IS_BIG_ENDIAN) {
+//    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+//    }
+//    else {
+//    	printf("%08x %08x %08x %08x %08x %08x %08x %08x : ",  SWAP_UINT32(H[0]), SWAP_UINT32(H[1]), SWAP_UINT32(H[2]), SWAP_UINT32(H[3]), SWAP_UINT32(H[4]), SWAP_UINT32(H[5]), SWAP_UINT32(H[6]), SWAP_UINT32(H[7]));
+//    }
+    
+    printf("%08x%08x%08x%08x%08x%08x%08x%08x\n",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+    
+    // printf("\n");
 
 } // end function
 
