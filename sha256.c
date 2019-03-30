@@ -48,7 +48,8 @@ enum status {READ, PAD0, PAD1, FINISH};
 
 
 // Function prototypes
-void sha256(FILE *input_file);
+//void sha256(FILE *input_file);
+uint64_t* sha256(FILE *input_file);
 int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *nobits);
 
 
@@ -58,11 +59,12 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 int main (int argc, char *argv[]){
 
 	FILE *file;
+	uint64_t *hash;
     
 	// Check for input files
 	if (argc == 1) {
 		fprintf(stderr, "Error: No input files\n");	
-		fprintf(stderr, "usage: %sfth [FILE]...\n", argv[0]);
+		fprintf(stderr, "usage: %s [FILE]...\n", argv[0]);
 		exit(1);
 	}
 
@@ -77,7 +79,13 @@ int main (int argc, char *argv[]){
 		}
 
 		// Run the secure hash algorithm on the current file
-    		sha256(file);
+    		hash = sha256(file);
+
+		// Output the resulting hash
+		for(int k = 0; k < 8; k++) {
+			printf("%08x", *(hash + k));
+		}
+		printf("\n");
 
 		// Close the current file
 		fclose(file);
@@ -91,7 +99,9 @@ int main (int argc, char *argv[]){
 
 // Functions implementation
 //
-void sha256(FILE *input_file) {
+// void sha256(FILE *input_file) {
+uint64_t*  sha256(FILE *input_file) {
+    uint64_t *hash = malloc(sizeof(uint64_t) * 8 ); 
     union msgblock M;
     enum status S = READ;
     uint64_t nobits = 0;
@@ -183,7 +193,13 @@ void sha256(FILE *input_file) {
 
     } // end loop
 
-    printf("%08x%08x%08x%08x%08x%08x%08x%08x\n",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+    // printf("%08x%08x%08x%08x%08x%08x%08x%08x\n",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
+
+    for(t = 0; t < 8; t++) {
+	*(hash + t) = H[t];
+    }
+
+    return hash;
 
 } // end function
 
