@@ -20,6 +20,11 @@
 #define EP1(x) (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
 
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
+#define SWAP_UINT64(x) \
+	( (((x) >> 56) & 0x00000000000000FF) | (((x) >> 40) & 0x000000000000FF00) | \
+	  (((x) >> 24) & 0x0000000000FF0000) | (((x) >>  8) & 0x00000000FF000000) | \
+	  (((x) <<  8) & 0x000000FF00000000) | (((x) << 24) & 0x0000FF0000000000) | \
+	  (((x) << 40) & 0x00FF000000000000) | (((x) << 56) & 0xFF00000000000000) )
 
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
     
@@ -81,14 +86,14 @@ int main (int argc, char *argv[]){
 		// Run the secure hash algorithm on the current file
     		hash = sha256(file);
 
+		// Close the current file
+		fclose(file);
+
 		// Output the resulting hash
 		for(int k = 0; k < 8; k++) {
 			printf("%08x", *(hash + k));
 		}
 		printf("\n");
-
-		// Close the current file
-		fclose(file);
 
 	} // end loop
 
@@ -193,13 +198,14 @@ uint64_t*  sha256(FILE *input_file) {
 
     } // end loop
 
+    // Debug
     // printf("%08x%08x%08x%08x%08x%08x%08x%08x\n",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
 
-    for(t = 0; t < 8; t++) {
+	    for(t = 0; t < 8; t++) {
 	*(hash + t) = H[t];
     }
 
-    return hash;
+   return hash;
 
 } // end function
 
@@ -221,7 +227,13 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 		}
 
 		// Set the last 64 bits to the number of bits in the file (big-endian)
-		M->s[7] = *nobits;
+		if (IS_BIG_ENDIAN) {
+			M->s[7] = *nobits;
+		}
+		else {
+			M->s[7] = SWAP_UINT64(*nobits);
+		}
+
 		// Tell S we are finished
 		*S = FINISH;
 
@@ -261,7 +273,12 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 		} // end loop
 
 		// Append the file size in bits as an unsigned 64 bit int (big-endian)
-		M->s[7] = *nobits;
+		if (IS_BIG_ENDIAN) {
+			M->s[7] = *nobits;
+		}
+		else {
+			M->s[7] = SWAP_UINT64(*nobits);
+		}
 
 		// Tell S we have finished
 		*S = FINISH;
@@ -280,7 +297,8 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 			nobytes = nobytes + 1;
 			M->e[nobytes] = 0x00;
 
-		} // end loop
+	        } // end loop
+
 	}
 	// Otherwise, check if we're just at the end of the file
 	else if (feof(input_file)) {
@@ -297,7 +315,7 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 	printf("\n\n");
 	*/
 
-	// Return 1 to get this function to be called again
+        //Return 1 to get this function to be called again
 	return 1;
 
 } // end function
