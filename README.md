@@ -11,35 +11,6 @@ The input data can literally be any data, whether it’s the entire Encyclopedia
 
 ***
 
-## [Steps](https://en.wikipedia.org/wiki/SHA-2)
-1. Initialize hash values: </br>
-The first step is to initialize the first 32 bits of the fractional part - **H[8]** - into 8 variables or primes of 4 bits each.
-
-2. Initialize array of round constants: </br>
-The 2nd step is to initialize the 64 binary words - **K[64]** - into characterised by the first 32 bits of the fractional parts of the cube roots of the first 64 prime numbers. In other words, the cube roots of the first 64 prime numbers is found as well as the fractional parts of those values. From those fractional parts, the first 32 bits are used for the 64 binary words.
-
-3. Pre-processing (Padding): </br>
-The original message starts with a length of **L** bits. A single 1 bit is added at the end followed by a **K** number of *'0'* bits in which K is the *smallest positive integer* such that **L + 1 + K = 448 mod 512**. Finally, add **L** at the end of the message, the original bits with which we started, represented by exactly 64 bits.
-
-4. Process the message in successive 512-bit chunks: </br>
-&nbsp;&nbsp;&nbsp;&nbsp;Break the message into 512-bit blocks and for each blocks create a create 64 words - **W[64]** - of 32 bits each as follows:
-      1. *first 16* - split M in 32 bit blocks
-      2. *remaining 48* - obtained with the formula found on the **Archived NIST Technical Series Publication** in **[Section 6.2.2, Part 1](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
-
-5. Working variables: </br>
-Initialize the working variables to the current hash value as per **[Section 6.2.2, Part 2](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
-
-6. Compression function: </br>
-Do 64 rounds consisting of the initializations in **[Section 6.2.2, Part 3](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
-
-7. Current hash value: </br>
-Add the compressed chunk to the current hash value as per **[Section 6.2.2, Part 4](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
-
-9. Produce the final hash value (big-endian): </br>
-Implement the cryptographic hash function just described by converting the little endians to big endians to allow bigger values to be outputted.
-
-***
-
 ## Run
 First and foremost, you will need to install [the GCC Compiler](http://www.codebind.com/cprogramming/install-mingw-windows-10-gcc/) (you might need to restart your computer after the installation is completed and [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) (if not already installed).
 
@@ -85,6 +56,35 @@ The hashes produced by this program can be validated against the following test 
 
 Or using the OpenSSL utility where available  
 ```$openssl sha256 file```
+
+***
+
+## [SHA256 Steps](https://en.wikipedia.org/wiki/SHA-2)
+1. Initialize hash values: </br>
+The first step is to initialize the first 32 bits of the fractional part - **H[8]** - into 8 variables or primes of 4 bits each.
+
+2. Initialize array of round constants: </br>
+The 2nd step is to initialize the 64 binary words - **K[64]** - into characterised by the first 32 bits of the fractional parts of the cube roots of the first 64 prime numbers. In other words, the cube roots of the first 64 prime numbers is found as well as the fractional parts of those values. From those fractional parts, the first 32 bits are used for the 64 binary words.
+
+3. Pre-processing (Padding): </br>
+The original message starts with a length of **L** bits. A single 1 bit is added at the end followed by a **K** number of *'0'* bits in which K is the *smallest positive integer* such that **L + 1 + K = 448 mod 512**. Finally, add **L** at the end of the message, the original bits with which we started, represented by exactly 64 bits.
+
+4. Process the message in successive 512-bit chunks: </br>
+&nbsp;&nbsp;&nbsp;&nbsp;Break the message into 512-bit blocks and for each blocks create a create 64 words - **W[64]** - of 32 bits each as follows:
+      1. *first 16* - split M in 32 bit blocks
+      2. *remaining 48* - obtained with the formula found on the **Archived NIST Technical Series Publication** in **[Section 6.2.2, Part 1](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+5. Working variables: </br>
+Initialize the working variables to the current hash value as per **[Section 6.2.2, Part 2](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+6. Compression function: </br>
+Do 64 rounds consisting of the initializations in **[Section 6.2.2, Part 3](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+7. Current hash value: </br>
+Add the compressed chunk to the current hash value as per **[Section 6.2.2, Part 4](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+9. Produce the final hash value (big-endian): </br>
+Implement the cryptographic hash function just described by converting the little endians to big endians to allow bigger values to be outputted.
 
 ***
 
