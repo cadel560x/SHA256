@@ -46,22 +46,47 @@ First and foremost, you will need to install [the GCC Compiler](http://www.codeb
 1. **Clone Repo**
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Open your terminal/cmd in the folder you wish to download the repository and execute the following </br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```> git clone https://github.com/cadel560x/SHA256```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$ git clone https://github.com/cadel560x/SHA256.git```
 
 2. **Command Prompt**
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Navigate into the folder you decided to download the repository using the terminal/cmd </br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```> cd SHA256```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$ cd SHA256```
 
 3. **Compile**
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Now compile the code using the following command </br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```> gcc -o sha256 sha256.c``` 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$ gcc -o sha256 sha256.c``` 
 
 4. **Run**
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Now, run the code
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Now, run the code:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For help and usage:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -h```</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For hashing a file:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -f abc.txt```</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For hashing multiple files:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -f empty.txt abc.txt string_448bits.txt string_896bits.txt```</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For hashing a string:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -s abc```</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For hashing multiple strings:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -s "" abc abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnop
+qrsmnopqrstnopqrstu```</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;To activate debug flag:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -d -f abc.txt```</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;To activate SHA224:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```$./sha256 -t sha224 -f abc.txt```
 
+***
+
+## *Validation*
+The hashes produced by this program can be validated against the following test vectors:  
+[Test vectors for SHA-1, SHA-2 and SHA-3](https://www.di-mgt.com.au/sha_testvectors.html)  
+
+Or using the OpenSSL utility  
+```$openssl sha256 file```
+
+***
 
 ## *References*
 * C: https://en.wikipedia.org/wiki/C_(programming_language) <br/>
