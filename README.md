@@ -1,11 +1,67 @@
 # Theory of Algorithms Project 2019
-#### Lecturer: *Dr.Ian McLoughlin*
+#### Lecturer: *Dr. Ian McLoughlin*
 #### Student Name: *Javier Mantilla*
 #### Student ID: *G00329649*
+
+***
 
 ## *Introduction for SHA256*
 SHA-256 stands for Secure Hash Algorithm – 256 bit and is a type of hash function commonly used in Blockchain. A hash function is a type of mathematical function which turns data into a fingerprint of that data called a hash. It’s like a formula or algorithm which takes the input data and turns it into an output of a fixed length, which represents the fingerprint of the data.</br>
 The input data can literally be any data, whether it’s the entire Encyclopedia Britannica, or just the number ‘1’. A hash function will give the same hash for the same input always no matter when, where and how you run the algorithm. Equally interestingly, if even one character in the input text or data is changed, the output hash will change. Also, a hash function is a one-way function, thus it is impossible to generate back the input data from its hash. So, you can go from the input data to the hash but not from the hash to the input data.</br>
+
+***
+
+## [Steps](https://en.wikipedia.org/wiki/SHA-2)
+1. Initialize hash values: </br>
+The first step is to initialize the first 32 bits of the fractional part - **H[8]** - into 8 variables or primes of 4 bits each.
+
+2. Initialize array of round constants: </br>
+The 2nd step is to initialize the 64 binary words - **K[64]** - into characterised by the first 32 bits of the fractional parts of the cube roots of the first 64 prime numbers. In other words, the cube roots of the first 64 prime numbers is found as well as the fractional parts of those values. From those fractional parts, the first 32 bits are used for the 64 binary words.
+
+3. Pre-processing (Padding): </br>
+The original message starts with a length of **L** bits. A single 1 bit is added at the end followed by a **K** number of *'0'* bits in which K is the *smallest positive integer* such that **L + 1 + K = 448 mod 512**. Finally, add **L** at the end of the message, the original bits with which we started, represented by exactly 64 bits.
+
+4. Process the message in successive 512-bit chunks: </br>
+&nbsp;&nbsp;&nbsp;&nbsp;Break the message into 512-bit blocks and for each blocks create a create 64 words - **W[64]** - of 32 bits each as follows:
+      1. *first 16* - split M in 32 bit blocks
+      2. *remaining 48* - obtained with the formula found on the **Archived NIST Technical Series Publication** in **[Section 6.2.2, Part 1](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+5. Working variables: </br>
+Initialize the working variables to the current hash value as per **[Section 6.2.2, Part 2](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+6. Compression function: </br>
+Do 64 rounds consisting of the initializations in **[Section 6.2.2, Part 3](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+7. Current hash value: </br>
+Add the compressed chunk to the current hash value as per **[Section 6.2.2, Part 4](https://ws680.nist.gov/publication/get_pdf.cfm?pub_id=910977)**
+
+9. Produce the final hash value (big-endian): </br>
+Implement the cryptographic hash function just described by converting the little endians to big endians to allow bigger values to be outputted.
+
+***
+
+## Run
+First and foremost, you will need to install [the GCC Compiler](http://www.codebind.com/cprogramming/install-mingw-windows-10-gcc/) (you might need to restart your computer after the installation is completed and [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) (if not already installed).
+
+1. **Clone Repo**
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Open your terminal/cmd in the folder you wish to download the repository and execute the following </br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```> git clone https://github.com/cristina1997/ElizaChatbot```
+
+2. **Command Prompt**
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Navigate into the folder you decided to download the repository using the terminal/cmd </br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```> cd FolderLocation```
+
+3. **Compile**
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Now compile the code using the following command </br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```> gcc -o <executable-name> <file-name.c>``` 
+
+4. **Run**
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Now, run the code
+
 
 ## *References*
 * C: https://en.wikipedia.org/wiki/C_(programming_language) <br/>
@@ -22,6 +78,8 @@ The input data can literally be any data, whether it’s the entire Encyclopedia
 * Tilde bitwise operator: https://stackoverflow.com/questions/3952122/what-does-operator-do
 * Macro for 64 bit little to big endian conversion:
 https://blogs.oracle.com/solaris/optimizing-byte-swapping-for-fun-and-profit-v2
+
+***
 
 ## *Video Links* 
 * Hash standard intro: https://web.microsoftstream.com/video/6c22658e-7e5a-421a-b7f9-f0206741ca40
