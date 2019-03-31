@@ -83,7 +83,7 @@ qrsmnopqrstnopqrstu```</br>
 The hashes produced by this program can be validated against the following test vectors:  
 [Test vectors for SHA-1, SHA-2 and SHA-3](https://www.di-mgt.com.au/sha_testvectors.html)  
 
-Or using the OpenSSL utility  
+Or using the OpenSSL utility where available  
 ```$openssl sha256 file```
 
 ***
