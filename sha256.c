@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
  
  
 // MACROS
@@ -19,6 +20,7 @@
 #define EP0(x) (ROTRIGHT(x,2) ^ ROTRIGHT(x,13) ^ ROTRIGHT(x,22))
 #define EP1(x) (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
 
+// Swap little-endian and big-endian integers of 32 bits and 64 bits
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 #define SWAP_UINT64(x) \
 	( (((x) >> 56) & 0x00000000000000FF) | (((x) >> 40) & 0x000000000000FF00) | \
@@ -26,6 +28,7 @@
 	  (((x) <<  8) & 0x000000FF00000000) | (((x) << 24) & 0x0000FF0000000000) | \
 	  (((x) << 40) & 0x00FF000000000000) | (((x) << 56) & 0xFF00000000000000) )
 
+// Detect endiandes of the CPU
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
     
 
@@ -41,6 +44,30 @@ static const uint32_t  K[64] = {
     0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
 
+// Origin hashes for SHA256
+static const uint32_t H_256[8] = {
+    0x6a09e667,
+    0xbb67ae85,
+    0x3c6ef372,
+    0xa54ff53a,
+    0x510e527f,
+    0x9b05688c,
+    0x1f83d9ab,
+    0x5be0cd19
+};
+
+// Origin hashes for SHA224
+static const uint32_t H_224[8] = {
+	0xc1059ed8,
+	0x367cd507,
+	0x3070dd17,
+	0xf70e5939,
+	0xffc00b31,
+	0x68581511,
+	0x64f98fa7,
+	0xbefa4fa4
+};
+
 
 // Data structures
 union msgblock {
@@ -53,60 +80,143 @@ enum status {READ, PAD0, PAD1, FINISH};
 
 
 // Function prototypes
-//void sha256(FILE *input_file);
-uint64_t* sha256(FILE *input_file);
-int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *nobits);
+uint32_t* sha256(void *input,  uint32_t const *H_pointer);
+int nextmsgblock(void **input, union msgblock *M, enum status *S, uint64_t *nobits);
+uint64_t null_pads(union msgblock *M, uint8_t start_byte, uint8_t last_byte);
+void hash_printer(uint32_t *buffer, size_t len);
+
+
+// Global variables
+uint8_t debug = 0;
+uint8_t hash_blocks = 8;
+uint8_t fflag = 0, sflag = 0;
 
 
 
 
 // Entry point 
 int main (int argc, char *argv[]){
+	static const char usage[] = "usage: %s [-h] [-d] [-f file_name ....] [-s string ....]\n";
 
 	FILE *file;
-	uint64_t *hash;
+	uint32_t *hash;
+        uint32_t const *H_pointer;
+
+	int opt;
+	char * input_string;
+	char * sha = "sha256";
     
-	// Check for input files
+
+	// Check for input
 	if (argc == 1) {
-		fprintf(stderr, "Error: No input files\n");	
-		fprintf(stderr, "usage: %s [FILE]...\n", argv[0]);
-		exit(1);
+		fprintf(stderr, "%s: error: no input files nor input strings\n", argv[0]);	
+		fprintf(stderr, usage, argv[0]);
+		exit(2);
+
+	} // end if
+
+	// Check options
+        while((opt = getopt(argc, argv, ":f:s:t:dh")) != -1)  
+	{  
+	         switch(opt)  
+	         {  
+	            case 'f':  
+			fflag = 1;
+	            break;  
+	            case 's':  
+		    	sflag = 1;
+	            break;  
+	            case 't':  
+			sha = optarg;
+	            break;  
+	            case 'h':  
+			fprintf(stdout, usage, argv[0]);
+			exit(0);
+	            break;  
+	            case 'd':  
+			debug = 1;
+	            break;  
+	            case ':':  
+	                fprintf(stderr, "%s: option -%c needs a value\n", argv[0], optopt);  
+	            break;  
+	            case '?':  
+	                fprintf(stderr, "%s: unknown option: %c\n", argv[0], optopt); 
+	            break;  
+
+	          } // end switch 
+
+	} // end loop  
+      
+	// Set ilegal states between '-f' and '-s' options
+	// Flags '-f' and '-s' cannot be set at the same time but we need at least one
+	// of them
+	if ( (fflag && sflag) || (!fflag && !sflag) ) { // xnor, logical biconditional
+		fprintf(stderr, "%s: ilegal option state [-fs]\n%s: use -f for file hashing or -s for string hashing\n", argv[0], argv[0]);
+		exit(2);
+
+	} // end if
+
+	// Sets the SHA
+	if ( strcmp(sha, "sha224") == 0 ) {
+		H_pointer = H_224;
+		hash_blocks = 7;
 	}
+	else {
+		H_pointer = H_256;
 
-	// Iterates over input files
-	for (int j = 1; j < argc; j++ ) {
-		file = fopen(argv[j], "r");
-		
-		// File check
-		if ( file == NULL ) {
-			fprintf(stderr, "Error: %s\n", strerror(errno));	
-			exit(2);
-		}
+	} // end if-else
 
-		// Run the secure hash algorithm on the current file
-    		hash = sha256(file);
+	// Start SHA process
+	if ( fflag == 1 ) {
+		// Iterates over input files
+		for (int j = optind - 1; j < argc; j++ ) {
+			file = fopen(argv[j], "r");
+			
+			// File check
+			if ( file == NULL ) {
+				fprintf(stderr, "Error: %s\n", strerror(errno));	
+				exit(1);
+			}
+	
+			// Run the secure hash algorithm on the current file
+	    		hash = sha256(file, H_pointer);
+	
+			// Close the current file
+			fclose(file);
+			
+			// Output the resulting hash
+			hash_printer(hash, hash_blocks);
 
-		// Close the current file
-		fclose(file);
+		} // end loop
 
-		// Output the resulting hash
-		for(int k = 0; k < 8; k++) {
-			printf("%08x", *(hash + k));
-		}
-		printf("\n");
+	} // end if
 
-	} // end loop
+	if ( sflag == 1 ) {
+		// Iterates over input strings
+                for (int j = optind - 1; j < argc; j++ ) {
+			input_string = argv[j];
+			
+			// Run the secure hash algorithm on the current string
+	    		hash = sha256(input_string, H_pointer);
+	
+			// Output the resulting hash
+			hash_printer(hash, hash_blocks);
 
-    return 0;
+		} // end loop
+
+	} // end if
+
+    	free(hash);
+
+    	return 0;
            
 } // end main
 
 
 // Functions implementation
-//
-// void sha256(FILE *input_file) {
-uint64_t*  sha256(FILE *input_file) {
-    uint64_t *hash = malloc(sizeof(uint64_t) * 8 ); 
+
+uint32_t*  sha256(void *input, uint32_t const *H_pointer) {
+    uint32_t *H = malloc(sizeof(uint32_t) * 8 ); 
     union msgblock M;
     enum status S = READ;
     uint64_t nobits = 0;
@@ -114,23 +224,17 @@ uint64_t*  sha256(FILE *input_file) {
     uint32_t W[64];
     uint32_t a,b,c,d,e,f,g,h;
     uint32_t T1, T2;
-    uint32_t H[8] = {
-        0x6a09e667,
-        0xbb67ae85,
-        0x3c6ef372,
-        0xa54ff53a,
-        0x510e527f,
-        0x9b05688c,
-        0x1f83d9ab,
-        0x5be0cd19
-     };
 
  // For looping.
     int t;
+ // For debugging
+    unsigned int i = 1;
                                                                   
+    // Copy origin hash into 'H' array
+    memcpy(H, H_pointer, sizeof(uint32_t) * 8);
+
 //  Loop through message blocks as per page 22
-//    for ( i = 0; i < 1; i++ ) {
-    while (nextmsgblock(input_file, &M, &S, &nobits)) {
+    while (nextmsgblock(&input, &M, &S, &nobits)) {
 
 	// From page 22, W[t] = M[t] for 0 <= t <= 15.
 	    for(t = 0; t < 16; t++) {
@@ -147,16 +251,17 @@ uint64_t*  sha256(FILE *input_file) {
 	       W[t] = SIG1(W[t-2]) + W[t-7] + SIG0(W[t-15]) + W[t-16];
 	    }
 	     
-       /*   // Debug
-            for (t = 0; t < 64; t++) {
-               printf("%08x ", W[t]);
-            }
-            printf("\n\n");
-       */
+	    if ( debug ) {
+	       printf("sha256::W array: iteration %u\n", i);
+               for (t = 0; t < 64; t++) {
+                  printf("%08x ", W[t]);
+               }
+               printf("\n\n");
 
-	// Initialize a,b,c, ... ,h as per step 2, Page 22.
-	    a = H[0]; b = H[1]; c = H[2]; d = H[3];
-	    e = H[4]; f = H[5]; g = H[6]; h = H[7];
+	    } // end if
+
+	    a = *(H + 0); b = *(H + 1); c = *(H + 2); d = *(H + 3);
+	    e = *(H + 4); f = *(H + 5); g = *(H + 6); h = *(H + 7);
 
 	// Step 3.
 	    for(t = 0; t < 64; t++) {
@@ -174,43 +279,51 @@ uint64_t*  sha256(FILE *input_file) {
 	       
 	    } // end loop
 
-	  /*  // Debug
-	    printf("%08x\n", a);
-	    printf("%08x\n", b);
-	    printf("%08x\n", c);
-	    printf("%08x\n", d);
-	    printf("%08x\n", e);
-	    printf("%08x\n", f);
-	    printf("%08x\n", g);
-	    printf("%08x\n", h);
-            printf("\n\n");
-          */
+	    if (debug) {
+	      printf("sha256::a to h variables: iteration %u\n", i);
+	      printf("a: %08x b: %08x c: %08x d: %08x e: %08x f: %08x g: %08x h: %08x\n\n"
+			      , a
+			      , b
+			      , c
+			      , d
+			      , e
+			      , f
+			      , g
+			      , h
+			      );
+
+	    } // end if
 	
 	// Step 4.
-	    H[0] = a + H[0];
-	    H[1] = b + H[1];
-	    H[2] = c + H[2];
-	    H[3] = d + H[3];
-	    H[4] = e + H[4];
-	    H[5] = f + H[5];
-	    H[6] = g + H[6];
-	    H[7] = h + H[7];
+	    *(H + 0) = a + *(H + 0);
+	    *(H + 1) = b + *(H + 1);
+	    *(H + 2) = c + *(H + 2);
+	    *(H + 3) = d + *(H + 3);
+	    *(H + 4) = e + *(H + 4);
+	    *(H + 5) = f + *(H + 5);
+	    *(H + 6) = g + *(H + 6);
+	    *(H + 7) = h + *(H + 7);
+
+            if (debug) {
+               printf("sha256::H array: iteration: %u\n", i);
+	       hash_printer(H, hash_blocks);
+	       printf("\n");
+        
+            } // end if
+
+	    if (debug) {
+	       i++;
+	    }
 
     } // end loop
 
-    // Debug
-    // printf("%08x%08x%08x%08x%08x%08x%08x%08x\n",  H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7]);
-
-	    for(t = 0; t < 8; t++) {
-	*(hash + t) = H[t];
-    }
-
-   return hash;
+   // return hash;
+   return H;
 
 } // end function
 
 
-int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *nobits) {
+int nextmsgblock(void **input, union msgblock *M, enum status *S, uint64_t *nobits) {
 
 	uint64_t nobytes;
 
@@ -248,12 +361,29 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 
 
 	// If we get down here, we haven't finished reading the file
-	// Starts reading current input file pointed by 'f' pointer
+	// Starts reading current input file pointed by 'input' pointer
 	*S = READ;
 
-	nobytes = fread(M->e, 1, 64, input_file);
-	
-	//printf("Read %2llu bytes\n", nobytes);
+	//nobytes = fread(M->e, 1, 64, input_file);
+	if ( fflag ) {
+		nobytes = fread(M->e, 1, 64, (FILE *)*input);
+	}
+	else if ( sflag ) {
+		// Copies 64 bytes and a null byte string terminator '\0'
+		// hence 65 is the size to use below
+		snprintf(M->e, 65, "%s", (char *)*input);
+		nobytes = strlen(M->e);
+		*input = *input + nobytes;
+
+		if (debug) {
+			printf("nextmsgblock::address in input: %p\n", *input);
+		}
+
+	} // end if-else if
+
+	if (debug) {
+		printf("nextmsgblock::nobytes : Read %2llu bytes\n\n", nobytes);
+	}
 	
 	// Keep track of the number of bytes we've read
 	*nobits = *nobits + (nobytes * 8);
@@ -266,11 +396,7 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 		M->e[nobytes] = 0x80;
 
 		// Add zero bits unit the last 64 bits
-		while (nobytes < 56) {
-			nobytes = nobytes + 1;
-			M->e[nobytes] = 0x00;
-
-		} // end loop
+		nobytes = null_pads(M, nobytes, 64);
 
 		// Append the file size in bits as an unsigned 64 bit int (big-endian)
 		if (IS_BIG_ENDIAN) {
@@ -293,30 +419,61 @@ int nextmsgblock(FILE *input_file, union msgblock *M, enum status *S, uint64_t *
 		M->e[nobytes] = 0x80;
 
 		// Pad the rest of the block with zero bits
-		while (nobytes < 64) {
-			nobytes = nobytes + 1;
-			M->e[nobytes] = 0x00;
-
-	        } // end loop
+		nobytes = null_pads(M, nobytes, 64);
 
 	}
 	// Otherwise, check if we're just at the end of the file
-	else if (feof(input_file)) {
-		// Tell S that we need another message block with all the padding
-		*S = PAD1;
-
-	} // end if-else if
-
-
-	/* // DEBUG
-	for (int i = 0; i < 64; i++) {
-		printf("%x ", M.e[i]);
+	else if ( fflag == 1 ) {
+	        if (feof((FILE *)*input)) {
+		    // Tell S that we need another message block with all the padding
+		    *S = PAD1;
+		}
 	}
-	printf("\n\n");
-	*/
+	// Otherwise, check if we're just at the end of the string
+	else if ( sflag == 1 ) {
+		if ( strlen((char *)*input) == 0 ) {
+		    // Tell S that we need another message block with all the padding
+		    *S = PAD1;
+	        }
+
+	} // end if-else if-else if-else if
+
+
+	if (debug) {
+		printf("nextmsgblock::M message block:\n");
+		for (int i = 0; i < 64; i++) {
+		    printf("%x ", M->e[i]);
+		}
+
+		printf("\n\n");
+
+	} // end if
 
         //Return 1 to get this function to be called again
 	return 1;
+
+} // end function
+
+
+uint64_t null_pads(union msgblock *M, uint8_t start_byte, uint8_t last_byte) {
+	uint64_t result = start_byte;
+
+	while (result < last_byte) {
+		M->e[++result] = 0x00;
+
+	} // end loop
+
+	return ++result;
+
+} // end function
+
+
+void hash_printer(uint32_t *buffer, size_t len) {
+	for(size_t i = 0; i < len; i++) {
+		printf("%08x", *(buffer + i));
+	}	
+
+	printf("\n");
 
 } // end function
 
